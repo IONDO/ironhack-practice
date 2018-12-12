@@ -1,116 +1,161 @@
+function Rover(direction, position, travelLog) {
+  this.direction = direction;
+  this.position = position;
+  this.travelLog = travelLog;
+};
 
-let rover= {
-  direction: "N",
-  position: {x: 0, y:0},
-  travelLog: [],
+function Obstacle(direction, position) {
+  this.direction = direction;
+  this.position = position;
 }
 
-let stone= {
-  direction: "E",
-  position: {x: 5, y:5},
-}
-
-let tree= {
-  direction: "w",
-  position: {x: 4, y:0},
-}
-
-let secondRover= {
-  direction: "S",
-  position: {x: 3, y:4},
-}
-
-function turnLeft(rover){
-  switch(rover.direction) {
+Rover.prototype.turnLeft = function () {
+  switch (this.direction) {
     case "N":
-    rover.direction= "W";
-    break;
-    case "W":
-    rover.direction= "S";
-    case "S":
-    rover.direction= "W";
-    break;
-    case "E":
-    rover.direction= "N";
-    break;
-  } 
-}
-
-function turnRight(rover){
-  switch(rover.direction) {
-    case "N":
-     rover.direction= "E";
-      break;
-    case "E":
-      rover.direction= "S";
-      break;
-    case "S":
-      rover.direction= "W";
+      this.direction = "W";
       break;
     case "W":
-      rover.direction= "N";
-  }  
-}
+      this.direction = "S";
+    case "S":
+      this.direction = "W";
+      break;
+    case "E":
+      this.direction = "N";
+      break;
+  }
+};
 
-function limit(boundary) {
-  if (boundary < 0) {
-    return 0;
-  } else if(boundary > 9) {
-    return 9;
-  } else {
-    return boundary;
+Rover.prototype.turnRight = function () {
+  switch (this.direction) {
+    case "N":
+      this.direction = "E";
+      break;
+    case "E":
+      this.direction = "S";
+      break;
+    case "S":
+      this.direction = "W";
+      break;
+    case "W":
+      this.direction = "N";
+  }
+};
+
+
+Rover.prototype.nextPosition = function (step) {
+  switch (this.direction) {
+    case "W":
+      return {
+        x: this.position.x - step,
+        y: this.position.y
+      }; //We have created a new object that is the possible next position
+    case "N":
+      return {
+        x: this.position.x,
+        y: this.position.y - step
+      };
+    case "S":
+      return {
+        x: this.position.x,
+        y: this.position.y + step
+      };
+    case "E":
+      return {
+        x: this.position.x + step,
+        y: this.position.y
+      };
   }
 }
 
-function moveForward(rover){
-  rover.travelLog.push([rover.position.x, rover.position.y]);
-  switch(rover.direction) {
-    case "W":
-      rover.position.x = limit(rover.position.x - 1);
-      break;
-    case "N":
-      rover.position.y = limit(rover.position.y- 1);
-      break;
-    case "S":
-      rover.position.y = limit(rover.position.y + 1);
-      break;
-    case "E":
-    rover.position.x = limit(rover.position.x + 1);    
-  }
-} 
+Rover.prototype.isInGrid = function (position) {
+  return position.x >= 0 && position.x <= 9 && position.y >= 0 && position.y <= 9;
+}
 
-function moveBackward(rover,obstacle1, obstacle2){
-  rover.travelLog.push([rover.position.x, rover.position.y]);
-  switch(rover.direction) {
-    case "W":
-      rover.position.x= limit(rover.position.x + 1);
-      break;
-    case "N":
-      rover.position.y = limit(rover.position.y + 1);
-      break;
-    case "S":
-      rover.position.y = limit(rover.position.y - 1);
-      break;
-    case "E":
-    rover.position.x = limit(rover.position.y - 1);    
-  }
-} 
-
-function execute(list,rover) {
-  for(var i=0 ; i < list.length; i++) {
-    switch (list[i]) {
-      case "f":
-        moveForward(rover);
-        break;
-       case "r":
-        turnRight(rover);
-        break; 
-       case "l":
-        turnLeft(rover);
-        break;   
-       case "b":
-        moveBackward(rover);   
+Rover.prototype.noObstacle = function (position, obstacles) {
+  for (let i = 0; i < obstacles.length; i++) {
+    if (obstacles[i].position.x === position.x &&
+      obstacles[i].position.y === position.y) {
+      return false;
+      /*If any of the elements in obstables array has the same position as
+           rover, then there is an obstable*/
     }
-  } 
-console.log(rover.travelLog);
+  }
+  return true; //If none of the elements in the array has the same position as rover.
+}
+
+Rover.prototype.isClear = function (position, obstacles) {
+  return this.isInGrid(position) && this.noObstacle(position, obstacles);
+}
+
+Rover.prototype.move = function (step, obstacles) {
+  this.travelLog.push([this.position.x, this.position.y]);
+  let position = this.nextPosition(step)
+  if (this.isClear(position, obstacles)) {
+    this.position = position;
+  } else {
+    console.log("Stop Rover!!!!")
+  }
+}
+
+Rover.prototype.moveForward = function (obstacles) {
+  this.move(1, obstacles);
+};
+
+Rover.prototype.moveBackward = function (obstacles) {
+  this.move(-1, obstacles);
+}
+
+let rover1 = new Rover("N", {
+  x: 0,
+  y: 0
+}, []);
+let rover2 = new Rover("N", {
+  x: 2,
+  y: 1
+}, []);
+
+let stone = new Obstacle("E", {
+  x: 5,
+  y: 5
+});
+
+let tree = new Obstacle("N", {
+  x: 3,
+  y: 1
+});
+
+function execute(list, rover, otherRover, obstacles) {
+  for (var i = 0; i < list.length; i++) {
+    if (i % 2 === 0) {
+      switch (list[i]) {
+        case "f":
+          rover.moveForward(obstacles);
+          break;
+        case "r":
+          rover.turnRight();
+          break;
+        case "l":
+          rover.turnLeft();
+          break;
+        case "b":
+          rover.moveBackward(obstacles);
+      }
+    } else {
+      switch (list[i]) {
+        case "f":
+          otherRover.moveForward(obstacles);
+          break;
+        case "r":
+          otherRover.turnRight();
+          break;
+        case "l":
+          otherRover.turnLeft();
+          break;
+        case "b":
+          otherRover.moveBackward(obstacles);
+      }
+    }
+  }
+  console.log(rover.travelLog);
+  console.log(otherRover.travelLog);
 }
